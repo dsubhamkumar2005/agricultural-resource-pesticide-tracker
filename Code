@@ -3,10 +3,10 @@
 #include <stdio.h>
 using namespace std;
 int count = 0; // Global counter for number of plants
-// ============================================================
+// ===========================================================
 // BASE CLASS: plant_base
 // Stores common plant attributes: ID, name, crop season
-// ============================================================
+// ===========================================================
 class plant_base {
 public:
     int pid;
