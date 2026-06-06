@@ -1,0 +1,221 @@
+#include <iostream>
+#include <string.h>
+#include <stdio.h>
+using namespace std;
+int count = 0; // Global counter for number of plants
+// ============================================================
+// BASE CLASS: plant_base
+// Stores common plant attributes: ID, name, crop season
+// ============================================================
+class plant_base {
+public:
+    int pid;
+    char pname[50];
+    char cseason[50];
+ 
+    plant_base() {
+        pid = 0;
+        strcpy(pname, "");
+        strcpy(cseason, "");
+    }
+ 
+    void input_base() {
+        cout << "Enter Plant ID: ";
+        cin >> pid;
+        cout << "Enter Plant Name: ";
+        cin >> pname;
+        cout << "Enter Crop Season: ";
+        cin >> cseason;
+    }
+ 
+    void display_base() {
+        cout << "Plant ID: " << pid << endl;
+        cout << "Plant Name: " << pname << endl;
+        cout << "Crop Season: " << cseason << endl;
+    }
+ 
+    // Virtual function enables polymorphism - overridden in Plant
+    virtual void reviewPlant(){
+        cout << "Base class review function" << endl;
+    }
+};
+ 
+// ============================================================
+// DERIVED CLASS: Plant (inherits plant_base)
+// Adds infection level tracking and management operations
+// ============================================================
+class Plant : public plant_base {
+public:
+    float inflvl; // Infection level 0-100
+ 
+    Plant() : plant_base() {
+        inflvl = 0.0;
+    }
+    // Adds a plant with exception handling for invalid inputs
+    void addPlant() {
+        try {
+            input_base();
+            if (pid <= 0) throw pid;
+            cout << "Enter Infection Level (0 to 100): ";
+            cin >> inflvl;
+            if (inflvl < 0 || inflvl > 100) throw inflvl;
+        }
+        catch (int e) {
+            cout << "Error: Invalid Plant ID (" << e << ")! Must be positive." << endl;
+            pid = 0;
+        }
+        catch (float e) {
+            cout << "Error: Infection Level (" << e << ") must be between 0 and 100." << endl;
+            inflvl = 0;
+        }
+    }
+ 
+    void displayPlant() {
+        display_base();
+        cout << "Infection Level: " << inflvl << "%" << endl;
+        cout << "---------------------" << endl;
+    }
+ 
+    void updatePlant(int uid) {
+        cout << "Enter New Plant Name: ";
+        cin >> pname;
+        cout << "Enter New Crop Season: ";
+        cin >> cseason;
+        cout << "Enter New Infection Level: ";
+        cin >> inflvl;
+        while (inflvl < 0 || inflvl > 100) {
+            cout << "enter valid infection level" << endl;
+            cin >> inflvl;
+        }
+        cout << "Plant Updated\n";
+    }
+ 
+    // Classifies plant condition based on infection level
+    void analyzePlant() {
+        cout << "\nPlant: " << pname << endl;
+        cout << "Condition: ";
+        if(inflvl <= 10)       cout << "Healthy\n";
+        else if(inflvl <= 30)  cout << "Mild Infection\n";
+        else if(inflvl <= 65)  cout << "Moderate Infection\n";
+        else                   cout << "Critical Condition\n";
+    }
+ 
+    // Overrides virtual function - provides detailed review
+    void reviewPlant() {
+        if(inflvl >= 0 && inflvl <= 10) {
+            cout << "Status : Healthy / Safe\n";
+            cout << "Action : No pesticide needed\n";
+            cout << "System : Continue standard watering\n";
+        }
+        else if(inflvl <= 30) {
+            cout << "Status : Mild Infection\n";
+            cout << "Action : Light preventive spray\n";
+            cout << "System : Schedule light spraying\n";
+        }
+        else if(inflvl <= 65) {
+            cout << "Status : Moderate Infection\n";
+            cout << "Action : Regular pesticide required\n";
+            cout << "System : Initiate pesticide dose\n";
+        }
+        else if(inflvl <= 100) {
+            cout << "Status : Critical\n";
+            cout << "Action : Maximum pesticide / isolate plant\n";
+            cout << "System : Immediate action required\n";
+        }
+    }
+};
+// ============================================================
+// CLASS: ReportGenerator
+// Generates analysis reports using polymorphism
+// ============================================================
+class ReportGenerator {
+public:
+    void generate(Plant p[], int count) {
+        for(int i = 0; i < count; i++) {
+            p[i].analyzePlant();
+            plant_base *ptr = &p[i]; // Base pointer to derived object
+            ptr->reviewPlant();      // Calls overridden virtual function
+        }
+    }
+} rg;
+ 
+// ============================================================
+// CLASS: FileStorage (inherits Plant)
+// Handles persistent file I/O operations
+// ============================================================
+class FileStorage : public Plant {
+public:
+    void savetofile(Plant p[], int count) {
+        FILE *fp = fopen("plant_data.txt", "w");
+        if (fp == NULL) { cout << "File is empty" << endl; return; }
+        for (int i = 0; i < count; i++)
+            fprintf(fp, "%d %s %s %f \n", p[i].pid, p[i].pname, p[i].cseason, p[i].inflvl);
+        fclose(fp);
+    }
+ 
+    void load_from_file(Plant p[], int &i) {
+        FILE *fp = fopen("plant_data.txt", "r");
+        if (fp == NULL) { cout << "File is empty" << endl; return; }
+        i = 0;
+        int id; char name[50], season[50]; float level;
+        while (fscanf(fp, "%d %s %s %f", &id, name, season, &level) != EOF) {
+            p[i].pid = id;
+            strcpy(p[i].pname, name);
+            strcpy(p[i].cseason, season);
+            p[i].inflvl = level;
+            i++;
+        }
+    }
+ 
+    void add_to_file(Plant p[], int count, int new_id,
+                     char new_name[50], char new_season[50], float infection_lvl) {
+        FILE *fp = fopen("plant_data.txt", "a");
+        if (fp == NULL) { cout << "File is empty" << endl; return; }
+        fprintf(fp, "%d %s %s %f", new_id, new_name, new_season, infection_lvl);
+        fclose(fp);
+    }
+};
+ 
+// ============================================================
+// MAIN FUNCTION: Menu-driven interface
+// ============================================================
+int main() {
+    FileStorage ds;
+    Plant p[100];
+    int ch = 0;
+ 
+    while (1) {
+        cout << "\n1.Add plant\n2.Update plant\n3.Display details";
+        cout << "\n4.Search Plant\n5.Detailed Analysis\n6.load data from file\n";
+        cout << "Enter choice (-1 to stop): ";
+        cin >> ch;
+ 
+        if (ch == 1) {
+            p[count++].addPlant();
+            ds.savetofile(p, count);
+        }
+        else if (ch == 2) {
+            int sid; cout << "enter id to update: "; cin >> sid;
+            int i, found = 0;
+            for (i = 0; i < count; i++)
+                if (p[i].pid == sid) { found = 1; break; }
+            if (found) { p[i].updatePlant(sid); ds.savetofile(p, count); }
+            else cout << "id not found" << endl;
+        }
+        else if (ch == 3) {
+            for(int i = 0; i < count; i++) p[i].displayPlant();
+        }
+        else if (ch == 4) {
+            int sid; cout << "Enter Id to search "; cin >> sid;
+            int i;
+            for(i = 0; i < count; i++)
+                if (p[i].pid == sid) break;
+            if (i < count) { cout << "Plant found" << endl; p[i].displayPlant(); }
+            else cout << "plant with " << sid << " not found" << endl;
+        }
+        else if (ch == 5) { rg.generate(p, count); }
+        else if (ch == 6) { ds.load_from_file(p, count); }
+        else if (ch == -1) break;
+    }
+    return 0;
+}
